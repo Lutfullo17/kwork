@@ -81,8 +81,7 @@ class OrderCreateView(LoginRequiredMixin, View):
         return render(request, 'marketplace/order_create.html', {'form': form})
 
 
-class OrderDetailView(LoginRequiredMixin, View):
-    login_url = 'accounts:login'
+class OrderDetailView(View):
 
     def get(self, request, pk):
         order = get_object_or_404(Order, pk=pk)

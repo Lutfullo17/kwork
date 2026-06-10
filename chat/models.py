@@ -120,7 +120,8 @@ class Submission(models.Model):
         order.status = Order.Status.COMPLETED
         order.save(update_fields=['status'])
 
-        profile = self.freelancer.profile
+        from accounts.models import Profile
+        profile, _ = Profile.objects.get_or_create(user=self.freelancer)
         profile.completed_jobs_count += 1
 
         # Reyting o'rtachasi hisoblanadi

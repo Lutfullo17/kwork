@@ -6,10 +6,7 @@ from django.views import View
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 
-from .models import User, Profile
-
-
-from .models import User, Emailcode
+from .models import User, Profile, Emailcode
 from .utilis import send_email_code
 
 
@@ -164,8 +161,10 @@ class LoginView(View):
         if user is not None:
             if user.is_active:
                 login(request, user)
-                next_url = request.GET.get('next', 'marketplace:order_list')
-                return redirect(next_url)
+                next_url = request.GET.get('next')
+                if next_url:
+                    return redirect(next_url)
+                return redirect('marketplace:order_list')
             else:
                 request.session['pending_email'] = email
                 return render(request, 'accounts/login.html', {

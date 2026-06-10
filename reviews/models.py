@@ -19,7 +19,8 @@ class Review(models.Model):
 
     def _update_freelancer_rating(self):
         from django.db.models import Avg
-        profile = self.freelancer.profile
+        from accounts.models import Profile
+        profile, _ = Profile.objects.get_or_create(user=self.freelancer)
         reviews = Review.objects.filter(freelancer=self.freelancer)
         avg     = reviews.aggregate(Avg('stars'))['stars__avg'] or 0
         profile.rating               = round(avg, 2)

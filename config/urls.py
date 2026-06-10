@@ -9,6 +9,7 @@ urlpatterns = [
     path('', include('marketplace.urls')),
     path('notifications/', include('notifications.urls', namespace='notifications')),
     path('chat/', include('chat.urls', namespace='chat')),
-    ]
+    path('reviews/', include('reviews.urls', namespace='reviews')),
+]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
