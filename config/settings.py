@@ -21,6 +21,7 @@ ALLOWED_HOSTS = [
 ]
 
 INSTALLED_APPS = [
+    'config.apps.ConfigConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -32,6 +33,15 @@ INSTALLED_APPS = [
     'marketplace',
     'notifications',
     'reviews',
+]
+
+if DEBUG:
+    INSTALLED_APPS.append('django_extensions')
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
 ]
 
 MIDDLEWARE = [

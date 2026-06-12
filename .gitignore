@@ -10,3 +10,4 @@ media/
 staticfiles/
 *.log
 .DS_Store
+certs/
