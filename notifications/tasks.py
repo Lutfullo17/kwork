@@ -8,10 +8,8 @@ from django.utils import timezone
 from datetime import timedelta
 
 
-@shared_task
-def check_deadlines():
+def run_check_deadlines():
     """
-    Har 10 daqiqada ishlaydi:
     - Muddati 1 soatdan kam qolgan loyihalarga ogohlantirish yuboradi.
     - Muddati o'tgan loyihalarni DELAYED qiladi.
     """
@@ -21,7 +19,6 @@ def check_deadlines():
     now = timezone.now()
     one_hour_later = now + timedelta(hours=1)
 
-    # 1 soat ichida muddati tugaydigan loyihalar
     soon_orders = Order.objects.filter(
         status=Order.Status.IN_PROGRESS,
         deadline__lte=one_hour_later,
@@ -36,7 +33,6 @@ def check_deadlines():
                 order_pk=order.pk,
             )
 
-    # Muddati o'tgan loyihalar
     delayed_orders = Order.objects.filter(
         status=Order.Status.IN_PROGRESS,
         deadline__lt=now,
@@ -51,3 +47,9 @@ def check_deadlines():
                 order_title=order.title,
                 order_pk=order.pk,
             )
+
+
+@shared_task
+def check_deadlines():
+    """Celery task — har 10 daqiqada ishlaydi."""
+    run_check_deadlines()

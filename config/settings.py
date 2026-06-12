@@ -7,6 +7,8 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+DEPLOYMENT = os.environ.get('DJANGO_DEPLOYMENT', 'local').lower()
+
 SECRET_KEY = os.environ.get(
     'DJANGO_SECRET_KEY',
     'django-insecure-dev-only-change-in-production',
@@ -74,16 +76,40 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': os.environ.get('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+
+def _database_config():
+    engine = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
+
+    if engine == 'django.db.backends.sqlite3':
+        return {
+            'default': {
+                'ENGINE': engine,
+                'NAME': os.environ.get('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+            }
+        }
+
+    db = {
+        'ENGINE': engine,
+        'NAME': os.environ.get('DB_NAME', ''),
         'USER': os.environ.get('DB_USER', ''),
         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
         'HOST': os.environ.get('DB_HOST', ''),
-        'PORT': os.environ.get('DB_PORT', ''),
     }
-}
+
+    port = os.environ.get('DB_PORT', '').strip()
+    if port:
+        db['PORT'] = port
+
+    if 'mysql' in engine:
+        db['OPTIONS'] = {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+
+    return {'default': db}
+
+
+DATABASES = _database_config()
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -116,10 +142,16 @@ EMAIL_BACKEND = os.environ.get(
 )
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 'yes')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Freelance.uz <noreply@freelance.uz>')
+DEFAULT_FROM_EMAIL = os.environ.get(
+    'DEFAULT_FROM_EMAIL',
+    EMAIL_HOST_USER or 'Freelance.uz <noreply@freelance.uz>',
+)
+
+CELERY_ENABLED = os.environ.get('CELERY_ENABLED', 'False').lower() in ('true', '1', 'yes')
 
 CACHES = {
     'default': {
@@ -131,22 +163,28 @@ CACHES = {
     }
 }
 
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = TIME_ZONE
-
-CELERY_BEAT_SCHEDULE = {
-    'check-deadlines-every-10-minutes': {
-        'task': 'notifications.tasks.check_deadlines',
-        'schedule': 600.0,
-    },
-}
+if CELERY_ENABLED:
+    CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+    CELERY_ACCEPT_CONTENT = ['json']
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TIMEZONE = TIME_ZONE
+    CELERY_BEAT_SCHEDULE = {
+        'check-deadlines-every-10-minutes': {
+            'task': 'notifications.tasks.check_deadlines',
+            'schedule': 600.0,
+        },
+    }
 
 if not DEBUG:
-    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'True').lower() in ('true', '1', 'yes')
+    # PythonAnywhere o'zi HTTPS ni boshqaradi — redirect yoqilmasa xato chiqmaydi
+    default_ssl_redirect = 'False' if DEPLOYMENT == 'pythonanywhere' else 'True'
+    SECURE_SSL_REDIRECT = os.environ.get(
+        'SECURE_SSL_REDIRECT',
+        default_ssl_redirect,
+    ).lower() in ('true', '1', 'yes')
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '31536000'))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True

@@ -16,8 +16,9 @@ def send_email_code(user):
     Emailcode.objects.create(user=user, code=code)
 
     send_mail(
-        subject = 'Tasdiqlash kodi',
-        message = f'Sizning tasdiqlash kodingiz: {code}\nKod 5 daqiqa davomida amal qiladi.',
-        from_email = settings.EMAIL_HOST_USER,
-        recipient_list = [user.email],
+        subject='Tasdiqlash kodi',
+        message=f'Sizning tasdiqlash kodingiz: {code}\nKod 5 daqiqa davomida amal qiladi.',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
     )
